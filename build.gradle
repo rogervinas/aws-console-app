@@ -16,6 +16,4 @@ ext {
 dependencies {
     compile "com.amazonaws:aws-java-sdk-core:${awsVersion}"
     compile "com.amazonaws:aws-java-sdk-ec2:${awsVersion}"
-    compile "com.amazonaws:aws-java-sdk-s3:${awsVersion}"
-    compile "com.amazonaws:aws-java-sdk-simpledb:${awsVersion}"
 }

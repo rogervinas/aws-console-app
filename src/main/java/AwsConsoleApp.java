@@ -12,9 +12,6 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -25,17 +22,10 @@ import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.simpledb.AmazonSimpleDB;
-import com.amazonaws.services.simpledb.AmazonSimpleDBClientBuilder;
-import com.amazonaws.services.simpledb.model.DomainMetadataRequest;
-import com.amazonaws.services.simpledb.model.DomainMetadataResult;
-import com.amazonaws.services.simpledb.model.ListDomainsRequest;
-import com.amazonaws.services.simpledb.model.ListDomainsResult;
+import com.amazonaws.services.ec2.model.Tag;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Welcome to your new AWS Java SDK based project!
@@ -76,9 +66,7 @@ public class AwsConsoleApp {
    *      the credentials file in your source directory.
    */
 
-  static AmazonEC2      ec2;
-  static AmazonS3       s3;
-  static AmazonSimpleDB sdb;
+  static AmazonEC2 ec2;
 
   /**
    * The only information needed to create a client are security credentials
@@ -110,15 +98,7 @@ public class AwsConsoleApp {
     }
     ec2 = AmazonEC2ClientBuilder.standard()
         .withCredentials(credentialsProvider)
-        .withRegion("us-west-2")
-        .build();
-    s3  = AmazonS3ClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion("us-west-2")
-        .build();
-    sdb = AmazonSimpleDBClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion("us-west-2")
+        .withRegion("eu-west-1")
         .build();
   }
 
@@ -154,102 +134,18 @@ public class AwsConsoleApp {
       }
 
       System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
+
+      for (Instance instance : instances) {
+        System.out.println("Instance " + instance.getInstanceId());
+        for (Tag tag : instance.getTags()) {
+          System.out.println("\t" + tag);
+        }
+      }
     } catch (AmazonServiceException ase) {
       System.out.println("Caught Exception: " + ase.getMessage());
       System.out.println("Reponse Status Code: " + ase.getStatusCode());
       System.out.println("Error Code: " + ase.getErrorCode());
       System.out.println("Request ID: " + ase.getRequestId());
-    }
-
-    /*
-     * Amazon SimpleDB
-     *
-     * The AWS SimpleDB client allows you to query and manage your data
-     * stored in SimpleDB domains (similar to tables in a relational DB).
-     *
-     * In this sample, we use a SimpleDB client to iterate over all the
-     * domains owned by the current user, and add up the number of items
-     * (similar to rows of data in a relational DB) in each domain.
-     */
-    try {
-      ListDomainsRequest sdbRequest = new ListDomainsRequest().withMaxNumberOfDomains(100);
-      ListDomainsResult sdbResult = sdb.listDomains(sdbRequest);
-
-      int totalItems = 0;
-      for (String domainName : sdbResult.getDomainNames()) {
-        DomainMetadataRequest metadataRequest = new DomainMetadataRequest().withDomainName(domainName);
-        DomainMetadataResult domainMetadata = sdb.domainMetadata(metadataRequest);
-        totalItems += domainMetadata.getItemCount();
-      }
-
-      System.out.println("You have " + sdbResult.getDomainNames().size() + " Amazon SimpleDB domain(s)" +
-          "containing a total of " + totalItems + " items.");
-    } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
-      System.out.println("Error Code: " + ase.getErrorCode());
-      System.out.println("Request ID: " + ase.getRequestId());
-    }
-
-    /*
-     * Amazon S3
-     *
-     * The AWS S3 client allows you to manage buckets and programmatically
-     * put and get objects to those buckets.
-     *
-     * In this sample, we use an S3 client to iterate over all the buckets
-     * owned by the current user, and all the object metadata in each
-     * bucket, to obtain a total object and space usage count. This is done
-     * without ever actually downloading a single object -- the requests
-     * work with object metadata only.
-     */
-    try {
-      List<Bucket> buckets = s3.listBuckets();
-
-      long totalSize  = 0;
-      int  totalItems = 0;
-      for (Bucket bucket : buckets) {
-        /*
-         * In order to save bandwidth, an S3 object listing does not
-         * contain every object in the bucket; after a certain point the
-         * S3ObjectListing is truncated, and further pages must be
-         * obtained with the AmazonS3Client.listNextBatchOfObjects()
-         * method.
-         */
-        ObjectListing objects = s3.listObjects(bucket.getName());
-        do {
-          for (S3ObjectSummary objectSummary : objects.getObjectSummaries()) {
-            totalSize += objectSummary.getSize();
-            totalItems++;
-          }
-          objects = s3.listNextBatchOfObjects(objects);
-        } while (objects.isTruncated());
-      }
-
-      System.out.println("You have " + buckets.size() + " Amazon S3 bucket(s), " +
-          "containing " + totalItems + " objects with a total size of " + totalSize + " bytes.");
-    } catch (AmazonServiceException ase) {
-      /*
-       * AmazonServiceExceptions represent an error response from an AWS
-       * services, i.e. your request made it to AWS, but the AWS service
-       * either found it invalid or encountered an error trying to execute
-       * it.
-       */
-      System.out.println("Error Message:    " + ase.getMessage());
-      System.out.println("HTTP Status Code: " + ase.getStatusCode());
-      System.out.println("AWS Error Code:   " + ase.getErrorCode());
-      System.out.println("Error Type:       " + ase.getErrorType());
-      System.out.println("Request ID:       " + ase.getRequestId());
-    } catch (AmazonClientException ace) {
-      /*
-       * AmazonClientExceptions represent an error that occurred inside
-       * the client on the local host, either while trying to send the
-       * request to AWS or interpret the response. For example, if no
-       * network connection is available, the client won't be able to
-       * connect to AWS to execute a request and will throw an
-       * AmazonClientException.
-       */
-      System.out.println("Error Message: " + ace.getMessage());
     }
   }
 }
