@@ -1,0 +1,21 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+version = '1.0-SNAPSHOT'
+
+mainClassName = "AwsConsoleApp"
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    awsVersion = '1.11.394'
+}
+
+dependencies {
+    compile "com.amazonaws:aws-java-sdk-core:${awsVersion}"
+    compile "com.amazonaws:aws-java-sdk-ec2:${awsVersion}"
+    compile "com.amazonaws:aws-java-sdk-s3:${awsVersion}"
+    compile "com.amazonaws:aws-java-sdk-simpledb:${awsVersion}"
+}
